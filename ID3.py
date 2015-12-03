@@ -55,6 +55,19 @@ class Id3(object):
                 best_fit =  fitness_value
                 chosen_attr = attr
         return best_attr
+    def get_match_examples(self,attr,attr_value,examples=self.examples):
+        examples = examples[:]
+        rtn_examples = []
+        if len(self.examples) == len(examples):
+
+            pass
+
+        else:
+            pass
+
+
+
+
 
     def decision_tree(self,examples,attr):
         """
