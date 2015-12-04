@@ -88,10 +88,11 @@ class Id3(object):
         return sort_counter.values()[0]
 
 
-    def decision_tree(self,examples,attributes):
+    def decision_tree(self,examples,attributes,attribute_genfunc=None):
         """
         examplexs save the index list of the records
         attributes is the list of index of alternative attributes for records
+        attribute_genfunc function is for random forests alg
         """
         default_class = self.default_class(examples)
         labels = [self.labels[index] for index in examples]
@@ -106,7 +107,35 @@ class Id3(object):
             node = {chosen_attr:{}}
             for value in self.get_attr_value(chosen_attr,examples):
                 match_examples = self.get_match_examples(chosen,value,examples)
-                sub_tree_node = self.decision_tree(match_examples,attributes.remove(chosen_attr))
+                if not attribute_genfunc:
+                    attributes = attribute_genfunc()
+                else:
+                    attributes = attributes.remove(chosen_attr)
+                sub_tree_node = self.decision_tree(match_examples,attributes,attribute_genfunc)
                 node[chosen_attr][value] = sub_tree_node
         return node
+
+    def get_classification(self,record,tree):
+        """
+        Return the class label of the given record
+        """
+        if not type(tree) == dict:
+            return tree
+        else:
+            attr,branch = tree.items()[0]
+            sub_tree = branch[record[attr]]
+            return self.get_classification(record,sub_tree)
+    def get_class_labels(self,training_set,tree):
+        data = training_set[:]
+        results = []
+        for record in data:
+            label = self.get_classification(record,tree)
+            results.append(label)
+        return results
+
+
+
+
+
+
 
