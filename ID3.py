@@ -7,9 +7,10 @@
 ########################################################
 import math
 from collections import defaultdict
+from collections import Counter
 
 class Id3(object):
-    def __init__(self, examples, label):
+    def __init__(self, examples, labels):
         self.examples = examples
         self.labels = labels
 
@@ -55,31 +56,57 @@ class Id3(object):
                 best_fit =  fitness_value
                 chosen_attr = attr
         return best_attr
-    def get_match_examples(self,attr,attr_value,examples=self.examples):
-        examples = examples[:]
+    def get_match_examples(self,attr,attr_value,examples=range(len(self.examples))):
+        """
+        examples saves the index list of examples
+        attr is the index of attribute
+        attr_value is the value to match
+        """
+        #example_pool = self.examples[:]
+        #rtn_examples = []
+        #for i in examples:
+        #    if examples_pool[i][attr] == attr_value:
+        #        rtn_examples.append(i)
         rtn_examples = []
-        if len(self.examples) == len(examples):
+        rtn_examples = [index for index,value in enumerate(self.examples) if value[attr] == attr_value]
+        return rtn_examples
 
-            pass
+    def get_attr_value(self, attr,examples=range(len(self.examples))):
+        """
+        examples is the list of index
+        attr is the index of chosen attribute
+        return unique values of the given attribute
+        """
+        examples_data = [value for index,value in enumerate(self.examples) if index in examples]
+        examples_data = list(set(examples_data))
+        return examples_data
 
+    def default_class(self,examples=range(len(self.examples))):
+        label_data = [label for index, label in enumerate(self.labels) if index in examples]
+        counter = dict(Counter(label_data))
+        sort_counter  = sorted(counter.items(),key=lambda d:d[0])
+        return sort_counter.values()[0]
+
+
+    def decision_tree(self,examples,attributes):
+        """
+        examplexs save the index list of the records
+        attributes is the list of index of alternative attributes for records
+        """
+        default_class = self.default_class(examples)
+        labels = [self.labels[index] for index in examples]
+        #if all the examples have the same label, return the label as the leaf node
+        if labels.count(labels[0]) == len(labels):
+            return labels[0]
+        #No attribute is alternative
+        elif len(attributes) < 1 and not examples:
+            return default_class
         else:
-            pass
-
-
-
-
-
-    def decision_tree(self,examples,attr):
-        """
-        pass
-        examplexs save the index list of the
-        """
-        example_instances = [self.examples[example] for example in examples]
-
-
-
-
-
-
-
+            chosen_attr = self.get_best_attr(examples,attributes)
+            node = {chosen_attr:{}}
+            for value in self.get_attr_value(chosen_attr,examples):
+                match_examples = self.get_match_examples(chosen,value,examples)
+                sub_tree_node = self.decision_tree(match_examples,attributes.remove(chosen_attr))
+                node[chosen_attr][value] = sub_tree_node
+        return node
 
