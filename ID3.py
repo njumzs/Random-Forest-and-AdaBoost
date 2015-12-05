@@ -126,6 +126,9 @@ class Id3(object):
             sub_tree = branch[record[attr]]
             return self.get_classification(record,sub_tree)
     def get_class_labels(self,training_set,tree):
+        """
+        training_set is the data set of instances to be classified
+        """
         data = training_set[:]
         results = []
         for record in data:
