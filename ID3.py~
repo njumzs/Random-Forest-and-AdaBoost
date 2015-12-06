@@ -159,8 +159,8 @@ class Id3(object):
         #Choose q attributes
         for i in range(int(q)):
             attr = None
-            while (attr in rtn_attributes or not (attr)):
-                attr = random.randint(0,len(self.examples[0])-1)
+            while (attr in rtn_attributes):
+                attr = random.randint(0,len(self.examples[0]))
             rtn_attributes.append(attr)
         return rtn_attributes
 
