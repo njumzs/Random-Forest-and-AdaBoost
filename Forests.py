@@ -12,7 +12,7 @@ import math
 from collections import defaultdict
 from collections import Counter
 import sys   
-#sys.setrecursionlimit(1000000)
+sys.setrecursionlimit(1000000)
 class RandomForests(object):
     def __init__(self,examples,labels):
         self.examples = examples
@@ -51,12 +51,11 @@ class RandomForests(object):
         for i in range(tree_num):
             examples, labels = self.sample_examples(prop)
             id3 = Id3(examples, labels)
-            tree = id3.decision_tree(range(len(examples)),self.attributes_gen(math.log(len(self.examples[0]),2)+1),math.log(len(self.examples[0]),2)+1)
+            tree = id3.decision_tree(range(len(examples)),range(len(self.examples[0])),math.log(len(self.examples[0]),2)+1)
             results.append(id3.get_class_labels(testing_data,tree))
-            wait(2)
         return results
 
-    def conduct(self,testing_data,testing_label,prop=0.4,tree_num=10):
+    def conduct(self,testing_data,testing_label,prop=0.56,tree_num=100):
         results = self.create_forests(tree_num,testing_data,prop)
         ensemble_results = defaultdict(list)
         for labels in results:

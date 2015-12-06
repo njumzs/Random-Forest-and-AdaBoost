@@ -93,7 +93,7 @@ if __name__ == '__main__':
     accut, result = forests.conduct(data,label)
     print accut
     example_fold, label_fold = get_k_fold(data,label,10)
-    mean_accu, stdev_accu = k_fold_validation(ID3.Id3,example_fold,label_fold)
+    mean_accu, stdev_accu = k_fold_validation(Forests.RandomForests,example_fold,label_fold)
     print mean_accu,stdev_accu
 
 

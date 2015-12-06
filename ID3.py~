@@ -52,7 +52,7 @@ class Id3(object):
         choose the best attribute based on gain or entropy
         attrs is the list of index of the alternative attributes
         """
-        chosen_attr = attrs[0]
+        chosen_attr = None
         best_fit = 0.0
         for attr in attrs:
             fitness_value = self.cal_gain(examples,attr)
@@ -104,6 +104,7 @@ class Id3(object):
         attributes is the list of index of alternative attributes for records
         attribute_genfunc function is for random forests alg
         """
+        print 'build tree'
         default_class = self.default_class(examples)
         labels = [self.labels[index] for index in examples]
         #if all the examples have the same label, return the label as the leaf node
@@ -114,16 +115,23 @@ class Id3(object):
             return default_class
         else:
             print "attrs ",attributes
-            chosen_attr = self.get_best_attr(examples,attributes)
+            if q:
+            	alter_attributes = self.attributes_gen(q,attributes)
+            else:
+            	alter_attributes = attributes[:]
+            chosen_attr = self.get_best_attr(examples,alter_attributes)
+            if not chosen_attr:
+            	chosen_attr = attributes[0]
             print "chosen_attr ", chosen_attr
+            print "labels ",labels 
             node = {chosen_attr:{}}
             for value in self.get_attr_value(chosen_attr,examples):
                 match_examples = self.get_match_examples(chosen_attr,value,examples)
-                if q:
-                    attributes = self.attributes_gen(q)
-                else:
-                    if attributes.count(chosen_attr)>0:
-                        attributes.remove(chosen_attr)
+                #if q:
+                #    attributes = self.attributes_gen(q,attributes)
+                #if not q:
+                if attributes.count(chosen_attr)>0:
+                	attributes.remove(chosen_attr)
                 sub_tree_node = self.decision_tree(match_examples,attributes,q)
                 node[chosen_attr][value] = sub_tree_node
         return node
@@ -151,16 +159,19 @@ class Id3(object):
                 label = key
         return key
         
-    def attributes_gen(self,q):
+    def attributes_gen(self,q,attributes):
         """
         q is the number of selected attributes by random forests
         """
         rtn_attributes = []
         #Choose q attributes
+        if len(attributes) <= q:
+        	rtn_attributes = attributes[:]
+        	return rtn_attributes
         for i in range(int(q)):
             attr = None
-            while (attr in rtn_attributes):
-                attr = random.randint(0,len(self.examples[0]))
+            while (attr in rtn_attributes or not (attr)):
+                attr = random.randint(0,len(self.examples[0])-1)
             rtn_attributes.append(attr)
         return rtn_attributes
 
