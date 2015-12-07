@@ -9,8 +9,9 @@
 import math
 import numpy as np
 from numpy.random import choice
-from ID3 import Id3
+#from ID3 import Id3
 from collections import defaultdict
+import ID3
 
 
 class Ada(object):
@@ -31,57 +32,74 @@ class Ada(object):
         sample_length = int(len(examples)*prop)
         rtn_records = []
         for i in range(sample_length):
-            rtn_records.append(choice(examples, p=weights))
+            rtn_records.append(int(choice(examples, p=weights)))
         return rtn_records
 
-    def get_base_class(self,classifier, prop):
+    def get_base_class(self,classifier,testing_set, prop=1.0):
         """
         classifier is the base classifier
         prop is the proportion to sample for the foundation of model
         """
         examples = self.examples[:]
         labels = self.labels[:]
-        sample_examples = self.weighted_sample(prop)
-        sample_labels  = [self.labels[index] for index in sample_examples]
+        sample_examples_index = self.weighted_sample(prop)
+        sample_labels  = [self.labels[index] for index in sample_examples_index]
+        sample_examples  = [self.examples[index] for index in sample_examples_index]
+        #print 'sample_examples ',sample_examples
+        #print 'sample_labels ',sample_labels
         base_classifier = classifier(sample_examples,sample_labels)
         attributes = range(len(self.examples[0]))
-        tree = base_classifier.decision_tree(sample_examples,attributes)
-        results = base_classifier.get_class_labels(examples,tree)
-        flag = [labels[i]==results[i] for i in range(len(results))]
-        return flag,results
+        tree = base_classifier.decision_tree(range(len(sample_examples)),attributes)
+        weight_results = base_classifier.get_class_labels(examples,tree)
+        test_results = base_classifier.get_class_labels(testing_set,tree)
+        weight_flag = [labels[i]==weight_results[i] for i in range(len(weight_results))]
+        #test_flag = [testing_labels[i]==test_results[i] for i in range(len(test_results))]
+        return test_results,weight_flag,weight_results
+
     def get_error_rate(self,flag):
         count = flag.count(False)
         return 1.0*count/len(flag)
 
-    def adaboost(classifier,T,prop=1.0):
+    def adaboost(self,classifier,testing_set,testing_labels,T=10,prop=1.0):
         """
         T is the num of iteration
         """
-        result_label = []
+        result_label = [0.0]*len(testing_set)
         example_length = len(self.examples)
         iter_num = 0
         for i in range(T):
-            flag,results = self.get_base_class(classifier,prop)
+            print i
+            test_results,flag,results = self.get_base_class(classifier,testing_set,prop)
+            com_flag = [test_results[j]==testing_labels[j] for j in range(len(test_results))]
+           # print "accurate_rate ", com_flag.count(True)," ",com_flag.count(True)*1.0/len(test_results)
+           # print 'test_results',test_results
             error_rate = self.get_error_rate(flag)
-            result_label = [result_label[i]+error_rate*results[i] for i in range(len(results))]
-            result_rate.append(error_rate)
-            result_label.append(results)
-            a = 1/2*math.log((1-error_rate)/error_rate)
+           # print "error_rate", error_rate
+            a = 1.0/2*math.log((1-error_rate)*1.0/error_rate)
+           # print "a ",a
+            result_label = [result_label[i]+a*test_results[i] for i in range(len(test_results))]
             for j in range(example_length):
-                if flag[i]:
+                if flag[j]:
                     self.weights[j] *= math.exp(a)
                 else:
                     self.weights[j] *= math.exp(-a)
-            wights_sum = sum(self.weights)
-            self.weights = [weight/weight_sum for weight in self.weights]
+            weights_sum = sum(self.weights)
+            self.weights = [weight/weights_sum for weight in self.weights]
             iter_num += 1
             if (error_rate==0) or (error_rate>=0.5):
                 break
         result_label = [result_label[i]*1.0/iter_num for i in range(len(result_label))]
+        #print "result_label ",result_label
         for i in range(len(result_label)):
-            if result_label[i]<0:
-                result_label[i] = -1
+            if result_label[i] < 0.0:
+                result_label[i] = -1.0
             else:
-                result_label[i] = 1
+                result_label[i] = 1.0
         return result_label
+    def conduct(self,testing_set,testing_labels,T=2000,prop=1.0):
+        result_labels = self.adaboost(ID3.Id3,testing_set,testing_labels,T,prop)
+        com_result = [result_labels[i]==testing_labels[i] for i in range(len(result_labels))]
+        accurate_rate = com_result.count(True)*1.0/len(testing_labels)
+        return accurate_rate, result_labels
+
 

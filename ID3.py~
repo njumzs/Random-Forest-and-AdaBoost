@@ -12,7 +12,7 @@ from collections import Counter
 
 class Id3(object):
     def __init__(self, examples, labels):
-    	print "aaaaaaaaaaaaaaa"
+    	#print "aaaaaaaaaaaaaaa"
         self.examples = examples
         self.labels = labels
 
@@ -34,10 +34,12 @@ class Id3(object):
         examples is the index of the self.examples
         """
         attr_freq = defaultdict(float)
+        #print 'examples ',examples
         for row_index in examples:
             example = self.examples[row_index]
             #print 'attr ',attr
-            #print 'example len ', len(example)
+            #print 'example len ', example
+            #print 'example ',example
             attr_freq[example[attr]] += 1.0
         examples_sum = sum(attr_freq.values())
         sum_subentropy = 0.0
@@ -55,8 +57,9 @@ class Id3(object):
         chosen_attr = None
         best_fit = 0.0
         for attr in attrs:
+            #print "for attr ",attr
             fitness_value = self.cal_gain(examples,attr)
-            print "fitness_value ",fitness_value
+            #print "fitness_value ",fitness_value
             if fitness_value>best_fit:
                 best_fit =  fitness_value
                 chosen_attr = attr
@@ -104,9 +107,10 @@ class Id3(object):
         attributes is the list of index of alternative attributes for records
         attribute_genfunc function is for random forests alg
         """
-        print 'build tree'
+        #print 'build tree'
         examples = examples[:]
         default_class = self.default_class(examples)
+        #print 'default ',default_class
         labels = [self.labels[index] for index in examples]
         #if all the examples have the same label, return the label as the leaf node
         if labels.count(labels[0]) == len(labels):
@@ -115,16 +119,16 @@ class Id3(object):
         elif len(attributes) <= 1 or not examples:
             return default_class
         else:
-            print "attrs ",attributes
+            #print "attrs ",attributes
             if q:
             	alter_attributes = self.attributes_gen(q,attributes)
             else:
             	alter_attributes = attributes[:]
+            #print "alter_attr ",alter_attributes
             chosen_attr = self.get_best_attr(examples,alter_attributes)
+            #print "chosen_attr",chosen_attr
             if not chosen_attr:
             	chosen_attr = attributes[0]
-            print "chosen_attr ", chosen_attr
-            print "labels ",labels 
             node = {chosen_attr:{}}
             for value in self.get_attr_value(chosen_attr,examples):
                 match_examples = self.get_match_examples(chosen_attr,value,examples)
@@ -136,30 +140,37 @@ class Id3(object):
                 sub_tree_node = self.decision_tree(match_examples,attributes,q)
                 node[chosen_attr][value] = sub_tree_node
         return node
-        
+
     def get_label_count(self,tree):
+    	#print "get_label_tree ",type(tree),' ',tree
         if not type(tree) == dict:
             label_count = defaultdict(float)
-            label_count[tree] += 1
+            #print '&&&&&&&&&& ',tree #?
+            label_count[tree] += 1.0
             return label_count
         attr, branches = tree.items()[0]
+        #print "branches ",type(branches)," ",branches
         counts = defaultdict(float)
-        for branch in branches:
+        for branch in branches.values():
+            #print 'branch ', type(branch),' ',branch
             results = self.get_label_count(branch)
-            for key in results.keys():
+            for key in [-1.0,1.0]:
                 counts[key] += results[key]
         return counts
-        
+
     def get_majority_label(self,tree):
+        #print 'majority tree', tree
         count = self.get_label_count(tree)
+        #print "majority tree", count
         label = None
         counter = 0.0
         for key in count.keys():
-            if count[key] > counter:
+            if count[key] >= counter:
                 counter = count[key]
                 label = key
-        return key
-        
+        #print "majority tree", label
+        return label
+
     def attributes_gen(self,q,attributes):
         """
         q is the number of selected attributes by random forests
@@ -181,13 +192,15 @@ class Id3(object):
         Return the class label of the given record
         """
         if not type(tree) == dict:
+            #print "^^^^^^^^^^^^ ",tree
             return tree
         else:
             attr,branch = tree.items()[0]
-            print "attr ",attr
-            print "branch ",branch
-            print "record attr ",record[attr]
+            #print "attr ",attr
+            #print "branch ",branch
+            #print "record attr ",record[attr]
             if not branch.has_key(record[attr]):
+            	#print self.get_majority_label(tree),"********************************"
                 return self.get_majority_label(tree)
             sub_tree = branch[record[attr]]
             return self.get_classification(record,sub_tree)
@@ -208,7 +221,8 @@ class Id3(object):
         """
         tree = self.decision_tree(range(len(self.examples)),range(len(self.examples[0])))
         result = self.get_class_labels(test_set,tree)
-        print "result ",result
+        #print "result ",result
+        print result
         com_result = [result[i]==test_label[i] for i in range(len(result))]
         accurate_rate = com_result.count(True)*1.0/len(test_label)
         return accurate_rate, result

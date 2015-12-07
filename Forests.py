@@ -55,7 +55,7 @@ class RandomForests(object):
             results.append(id3.get_class_labels(testing_data,tree))
         return results
 
-    def conduct(self,testing_data,testing_label,prop=1.0,tree_num=2000):
+    def conduct(self,testing_data,testing_label,prop=1.0,tree_num=200):
         results = self.create_forests(tree_num,testing_data,prop)
         ensemble_results = defaultdict(list)
         for labels in results:
