@@ -22,7 +22,7 @@ class Ada(object):
         self.examples = examples
         self.labels = labels
         self.weights = [1.0/len(examples)]*len(examples)
-    def weighted_sample(self, prop=1.0):
+    def weighted_sample(self, prop):
         """
         prop is the proportion to sample
         """

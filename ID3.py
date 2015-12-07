@@ -105,6 +105,7 @@ class Id3(object):
         attribute_genfunc function is for random forests alg
         """
         print 'build tree'
+        examples = examples[:]
         default_class = self.default_class(examples)
         labels = [self.labels[index] for index in examples]
         #if all the examples have the same label, return the label as the leaf node

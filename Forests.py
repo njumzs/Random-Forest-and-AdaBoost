@@ -17,7 +17,7 @@ class RandomForests(object):
     def __init__(self,examples,labels):
         self.examples = examples
         self.labels = labels
-    def sample_examples(self,prop=0.5):
+    def sample_examples(self,prop=1.0):
         """
         Return example instances, not index list
         """
@@ -55,7 +55,7 @@ class RandomForests(object):
             results.append(id3.get_class_labels(testing_data,tree))
         return results
 
-    def conduct(self,testing_data,testing_label,prop=0.56,tree_num=100):
+    def conduct(self,testing_data,testing_label,prop=1.0,tree_num=2000):
         results = self.create_forests(tree_num,testing_data,prop)
         ensemble_results = defaultdict(list)
         for labels in results:

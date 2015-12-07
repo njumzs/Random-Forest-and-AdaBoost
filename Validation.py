@@ -31,8 +31,9 @@ def get_k_fold(examples, labels, k=10):
     interval = int(len(examples)/k)
     print 'interval: ',interval
     for i in range(k):
-        f_examples = [examples[j] for j in range(interval*i,interval*(i+1))]
-        f_labels = [labels[k] for k in range(interval*i,interval*(i+1))]
+    	f_examples = [examples[j] for j in range(len(examples)) if j%k == i]
+        f_labels = [labels[j] for j in range(len(labels)) if j%k == i]
+        #f_labels = [labels[k] for k in range(interval*i,interval*(i+1))]
         example_fold.append(f_examples)
         label_fold.append(f_labels)
     return example_fold, label_fold
