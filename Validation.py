@@ -12,8 +12,11 @@ def get_data(datafile):
     data = []
     label = []
     with open(datafile,'r') as f:
-        f.readline()  #Skip the first line
+        line_first = f.readline()  #Skip the first line
+        item_l = line_first.split(',')
+        flags = [int(value.strip()) for index, value in enumerate(item_l) if index < len(item_l)]
         for line in f:
+            print line
             item_list = line.split(',')
             features = [float(value.strip()) for index, value in enumerate(item_list) if index < (len(item_list)-1)]
             tag = float(item_list[len(item_list)-1].strip())
@@ -22,7 +25,7 @@ def get_data(datafile):
             	tag = -1.0
             data.append(features)
             label.append(tag)
-    return data, label
+    return data, label, flags
 
 def get_k_fold(examples, labels, k=10):
     """
@@ -42,7 +45,7 @@ def get_k_fold(examples, labels, k=10):
         label_fold.append(f_labels)
     return example_fold, label_fold
 
-def k_fold_validation(alg,example_fold,label_fold):
+def k_fold_validation(alg,example_fold,label_fold,flags):
     """
     alg: Id3, Ada, RandomForests
     example_fold and label_fold are both the list of instances
@@ -59,7 +62,7 @@ def k_fold_validation(alg,example_fold,label_fold):
             if not j == i:
                 training_set += example_fold[j]
                 training_label += label_fold[j]
-        alg_run = alg(training_set, training_label)
+        alg_run = alg(training_set, training_label,flags)
         accurate_rate, result = alg_run.conduct(testing_set,testing_label)
         accu_rate.append(accurate_rate)
     mean_accu = mean(accu_rate)
@@ -89,12 +92,15 @@ def pstdev(data):
     return pvar**0.5
 
 if __name__ == '__main__':
-    data,label = get_data('./data1.txt')
+    data,label,flags = get_data('./data2.txt')
+    #print data
+   # print flags
+   # print label
 #    forests = Forests.RandomForests(data,label)
 #    accut, result = forests.conduct(data,label)
  #   print accut
     example_fold, label_fold = get_k_fold(data,label,10)#Adaboost.Ada
-    mean_accu, stdev_accu = k_fold_validation(Adaboost.Ada,example_fold,label_fold)
+    mean_accu, stdev_accu = k_fold_validation(Forests.RandomForests,example_fold,label_fold,flags)
     print mean_accu,stdev_accu
 
 

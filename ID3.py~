@@ -11,11 +11,27 @@ from collections import defaultdict
 from collections import Counter
 
 class Id3(object):
-    def __init__(self, examples, labels):
-    	#print "aaaaaaaaaaaaaaa"
+    def __init__(self, examples, labels, flags):
         self.examples = examples
         self.labels = labels
-
+        self.flags = flags
+        self.cut_value = {}
+    def get_alter_point(self, examples,attr):
+        """
+        get attrs to use for numeric attribute
+        """
+        result = defaultdict(float)
+        for example in examples:
+            result[example] = self.examples[example][attr]
+        sort_attr_values  = sorted(result.items(),key=lambda d:d[1])
+        rtn = []
+        for k in range(len(sort_attr_values)-1):
+            example, value = sort_attr_values[k]
+            example_pos,value_pos = sort_attr_values[k+1]
+            if not (self.labels[example] ==self.labels[example_pos]):
+                rtn.append(1.0/2*(value+value_pos))
+        rtn = list(set(rtn))
+        return rtn
     def cal_entropy(self, examples):
         """
         examples save indexes of the self.examples
@@ -28,18 +44,49 @@ class Id3(object):
         for freq_value in class_freq.values():
             entropy_vlaue += (-freq_value/example_num)* math.log(freq_value/example_num,2)
         return entropy_vlaue
+    def get_best_attr_cut(self,examples,attr):
+        """
+        for numeric value
+        return cut value of attr
+        """
+        alter_values = self.get_alter_point(examples,attr)
+        print "alter_values",alter_values
+        all_values = self.get_attr_value(attr,examples)
+        rtn_value = None
+        entroy_base = 100.0
+        for value in alter_values:
+            example_less = [index for index in examples if self.examples[index][attr]<=value]
+            example_greater = [index for index in examples if self.examples[index][attr]>value]
+            total_sum = len(example_less)+len(example_greater)
+            entroy_value = len(example_less)*1.0/total_sum*self.cal_entropy(example_less)+len(example_greater)*1.0/total_sum*self.cal_entropy(example_greater)
+            #print "entroy_value",entroy_value
+            if entroy_base >= entroy_value:
+                entroy_base = entroy_value
+                rtn_value = value
+        return value
+
+    def get_numeric_entroy(self,examples,attr):
+        value = self.get_best_attr_cut(examples,attr)
+        example_less = [index for index in examples if self.examples[index][attr]<=value]
+        example_greater = [index for index in examples if self.examples[index][attr]>value]
+        total_sum = len(example_less)+len(example_greater)
+        entroy_value = len(example_less)*1.0/total_sum*self.cal_entropy(example_less)+len(example_greater)*1.0/total_sum*self.cal_entropy(example_greater)
+        return entroy_value
+
+
+
     def cal_gain(self, examples, attr):
         """
         attr is the index of the selected feature
         examples is the index of the self.examples
         """
+        #print self.flags
+        #print attr
+        if self.flags[attr] == 0:
+            return self.cal_entropy(examples) - self.get_numeric_entroy(examples,attr)
         attr_freq = defaultdict(float)
-        #print 'examples ',examples
         for row_index in examples:
             example = self.examples[row_index]
-            #print 'attr ',attr
-            #print 'example len ', example
-            #print 'example ',example
             attr_freq[example[attr]] += 1.0
         examples_sum = sum(attr_freq.values())
         sum_subentropy = 0.0
@@ -113,32 +160,52 @@ class Id3(object):
         #print 'default ',default_class
         labels = [self.labels[index] for index in examples]
         #if all the examples have the same label, return the label as the leaf node
-        if labels.count(labels[0]) == len(labels):
-            return labels[0]
+        #print "tree examples", examples
+        #print "tree labels ",labels
+        #print labels[0]
+        #print labels.count(labels[0])
+        #print len(labels)
+        #if labels.count(labels[0]) == len(labels):
+        #    print labels[0]
+        #    return labels[0]
         #No attribute is alternative
-        elif len(attributes) <= 1 or not examples:
+        if len(attributes) <= 1 or not examples:
             return default_class
+        elif labels.count(labels[0]) == len(labels):
+        	return labels[0]
         else:
             #print "attrs ",attributes
             if q:
-            	alter_attributes = self.attributes_gen(q,attributes)
+                alter_attributes = self.attributes_gen(q,attributes)
             else:
-            	alter_attributes = attributes[:]
+                alter_attributes = attributes[:]
             #print "alter_attr ",alter_attributes
+            #print "alter_attr", alter_attributes
             chosen_attr = self.get_best_attr(examples,alter_attributes)
             #print "chosen_attr",chosen_attr
             if not chosen_attr:
-            	chosen_attr = attributes[0]
+                chosen_attr = attributes[0]
             node = {chosen_attr:{}}
-            for value in self.get_attr_value(chosen_attr,examples):
-                match_examples = self.get_match_examples(chosen_attr,value,examples)
-                #if q:
-                #    attributes = self.attributes_gen(q,attributes)
-                #if not q:
-                if attributes.count(chosen_attr)>0:
-                	attributes.remove(chosen_attr)
-                sub_tree_node = self.decision_tree(match_examples,attributes,q)
-                node[chosen_attr][value] = sub_tree_node
+            #if not q:
+            if attributes.count(chosen_attr)>0:
+                attributes.remove(chosen_attr)
+            if self.flags[chosen_attr] == 0:
+                attr_cut_value = self.get_best_attr_cut(examples,chosen_attr)
+                print "attr_cut_value",attr_cut_value
+                self.cut_value[chosen_attr] = attr_cut_value
+                examples_less = [index for index in examples if self.examples[index][chosen_attr]<=attr_cut_value]
+                examples_greater = [index for index in examples if self.examples[index][chosen_attr]>attr_cut_value]
+                print "less ", examples_less
+                print "greater ",examples_greater
+                less_tree_node = self.decision_tree(examples_less,attributes,q)
+                greater_tree_node = self.decision_tree(examples_greater,attributes,q)
+                node[chosen_attr][-1] = less_tree_node
+                node[chosen_attr][1] = greater_tree_node
+            else:
+                for value in self.get_attr_value(chosen_attr,examples):
+                    match_examples = self.get_match_examples(chosen_attr,value,examples)
+                    sub_tree_node = self.decision_tree(match_examples,attributes,q)
+                    node[chosen_attr][value] = sub_tree_node
         return node
 
     def get_label_count(self,tree):
@@ -196,14 +263,19 @@ class Id3(object):
             return tree
         else:
             attr,branch = tree.items()[0]
-            #print "attr ",attr
-            #print "branch ",branch
-            #print "record attr ",record[attr]
-            if not branch.has_key(record[attr]):
-            	#print self.get_majority_label(tree),"********************************"
-                return self.get_majority_label(tree)
-            sub_tree = branch[record[attr]]
-            return self.get_classification(record,sub_tree)
+            if self.flags[attr] == 1:
+                if not branch.has_key(record[attr]):
+                    return self.get_majority_label(tree)
+                sub_tree = branch[record[attr]]
+                return self.get_classification(record,sub_tree)
+            else:
+                attr_value = record[attr]
+                cut_attr_value = self.cut_value[attr]
+                if attr_value < cut_attr_value:
+                    return self.get_classification(record,branch[-1])
+                else:
+                    return self.get_classification(record,branch[1])
+
     def get_class_labels(self,test_set,tree):
         """
         test_set is the data set of instances to be classified
@@ -222,7 +294,7 @@ class Id3(object):
         tree = self.decision_tree(range(len(self.examples)),range(len(self.examples[0])))
         result = self.get_class_labels(test_set,tree)
         #print "result ",result
-        print result
+        #print result
         com_result = [result[i]==test_label[i] for i in range(len(result))]
         accurate_rate = com_result.count(True)*1.0/len(test_label)
         return accurate_rate, result

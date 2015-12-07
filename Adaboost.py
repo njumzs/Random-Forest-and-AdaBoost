@@ -15,13 +15,14 @@ import ID3
 
 
 class Ada(object):
-    def __init__(self, examples, labels):
+    def __init__(self, examples, labels,flags):
         """
         examples save the list of example instances
         labels represent the labels of  corresponding instances
         """
         self.examples = examples
         self.labels = labels
+        self.flags = flags 
         self.weights = [1.0/len(examples)]*len(examples)
     def weighted_sample(self, prop):
         """
@@ -47,7 +48,7 @@ class Ada(object):
         sample_examples  = [self.examples[index] for index in sample_examples_index]
         #print 'sample_examples ',sample_examples
         #print 'sample_labels ',sample_labels
-        base_classifier = classifier(sample_examples,sample_labels)
+        base_classifier = classifier(sample_examples,sample_labels,self.flags)
         attributes = range(len(self.examples[0]))
         tree = base_classifier.decision_tree(range(len(sample_examples)),attributes)
         weight_results = base_classifier.get_class_labels(examples,tree)
@@ -96,7 +97,7 @@ class Ada(object):
             else:
                 result_label[i] = 1.0
         return result_label
-    def conduct(self,testing_set,testing_labels,T=4000,prop=1.0):
+    def conduct(self,testing_set,testing_labels,T=200,prop=1.0):
         result_labels = self.adaboost(ID3.Id3,testing_set,testing_labels,T,prop)
         com_result = [result_labels[i]==testing_labels[i] for i in range(len(result_labels))]
         accurate_rate = com_result.count(True)*1.0/len(testing_labels)
