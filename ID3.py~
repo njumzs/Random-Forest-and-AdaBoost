@@ -50,7 +50,6 @@ class Id3(object):
         return cut value of attr
         """
         alter_values = self.get_alter_point(examples,attr)
-        print "alter_values",alter_values
         all_values = self.get_attr_value(attr,examples)
         rtn_value = None
         entroy_base = 100.0
@@ -59,7 +58,6 @@ class Id3(object):
             example_greater = [index for index in examples if self.examples[index][attr]>value]
             total_sum = len(example_less)+len(example_greater)
             entroy_value = len(example_less)*1.0/total_sum*self.cal_entropy(example_less)+len(example_greater)*1.0/total_sum*self.cal_entropy(example_greater)
-            #print "entroy_value",entroy_value
             if entroy_base >= entroy_value:
                 entroy_base = entroy_value
                 rtn_value = value
@@ -80,8 +78,6 @@ class Id3(object):
         attr is the index of the selected feature
         examples is the index of the self.examples
         """
-        #print self.flags
-        #print attr
         if self.flags[attr] == 0:
             return self.cal_entropy(examples) - self.get_numeric_entroy(examples,attr)
         attr_freq = defaultdict(float)
@@ -104,9 +100,7 @@ class Id3(object):
         chosen_attr = None
         best_fit = 0.0
         for attr in attrs:
-            #print "for attr ",attr
             fitness_value = self.cal_gain(examples,attr)
-            #print "fitness_value ",fitness_value
             if fitness_value>best_fit:
                 best_fit =  fitness_value
                 chosen_attr = attr
@@ -154,35 +148,19 @@ class Id3(object):
         attributes is the list of index of alternative attributes for records
         attribute_genfunc function is for random forests alg
         """
-        #print 'build tree'
         examples = examples[:]
         default_class = self.default_class(examples)
-        #print 'default ',default_class
         labels = [self.labels[index] for index in examples]
-        #if all the examples have the same label, return the label as the leaf node
-        #print "tree examples", examples
-        #print "tree labels ",labels
-        #print labels[0]
-        #print labels.count(labels[0])
-        #print len(labels)
-        #if labels.count(labels[0]) == len(labels):
-        #    print labels[0]
-        #    return labels[0]
-        #No attribute is alternative
-        if len(attributes) <= 1 or not examples:
+        if len(attributes) < 1 or not examples:
             return default_class
         elif labels.count(labels[0]) == len(labels):
         	return labels[0]
         else:
-            #print "attrs ",attributes
             if q:
                 alter_attributes = self.attributes_gen(q,attributes)
             else:
                 alter_attributes = attributes[:]
-            #print "alter_attr ",alter_attributes
-            #print "alter_attr", alter_attributes
             chosen_attr = self.get_best_attr(examples,alter_attributes)
-            #print "chosen_attr",chosen_attr
             if not chosen_attr:
                 chosen_attr = attributes[0]
             node = {chosen_attr:{}}
@@ -191,16 +169,19 @@ class Id3(object):
                 attributes.remove(chosen_attr)
             if self.flags[chosen_attr] == 0:
                 attr_cut_value = self.get_best_attr_cut(examples,chosen_attr)
-                print "attr_cut_value",attr_cut_value
                 self.cut_value[chosen_attr] = attr_cut_value
                 examples_less = [index for index in examples if self.examples[index][chosen_attr]<=attr_cut_value]
                 examples_greater = [index for index in examples if self.examples[index][chosen_attr]>attr_cut_value]
-                print "less ", examples_less
-                print "greater ",examples_greater
-                less_tree_node = self.decision_tree(examples_less,attributes,q)
-                greater_tree_node = self.decision_tree(examples_greater,attributes,q)
-                node[chosen_attr][-1] = less_tree_node
-                node[chosen_attr][1] = greater_tree_node
+                if examples_less and examples_greater:
+                	less_tree_node = self.decision_tree(examples_less,attributes,q)
+                	greater_tree_node = self.decision_tree(examples_greater,attributes,q)
+                	node[chosen_attr][-1] = less_tree_node
+                	node[chosen_attr][1] = greater_tree_node
+            	else:
+            		examples_less += examples_greater
+            		less_tree_node = self.decision_tree(examples_less,attributes,q)
+            		node[chosen_attr][-1] = less_tree_node
+           		node[chosen_attr][1] = less_tree_node
             else:
                 for value in self.get_attr_value(chosen_attr,examples):
                     match_examples = self.get_match_examples(chosen_attr,value,examples)
@@ -209,33 +190,26 @@ class Id3(object):
         return node
 
     def get_label_count(self,tree):
-    	#print "get_label_tree ",type(tree),' ',tree
         if not type(tree) == dict:
             label_count = defaultdict(float)
-            #print '&&&&&&&&&& ',tree #?
             label_count[tree] += 1.0
             return label_count
         attr, branches = tree.items()[0]
-        #print "branches ",type(branches)," ",branches
         counts = defaultdict(float)
         for branch in branches.values():
-            #print 'branch ', type(branch),' ',branch
             results = self.get_label_count(branch)
             for key in [-1.0,1.0]:
                 counts[key] += results[key]
         return counts
 
     def get_majority_label(self,tree):
-        #print 'majority tree', tree
         count = self.get_label_count(tree)
-        #print "majority tree", count
         label = None
         counter = 0.0
         for key in count.keys():
             if count[key] >= counter:
                 counter = count[key]
                 label = key
-        #print "majority tree", label
         return label
 
     def attributes_gen(self,q,attributes):
@@ -243,7 +217,6 @@ class Id3(object):
         q is the number of selected attributes by random forests
         """
         rtn_attributes = []
-        #Choose q attributes
         if len(attributes) <= q:
         	rtn_attributes = attributes[:]
         	return rtn_attributes
@@ -259,7 +232,6 @@ class Id3(object):
         Return the class label of the given record
         """
         if not type(tree) == dict:
-            #print "^^^^^^^^^^^^ ",tree
             return tree
         else:
             attr,branch = tree.items()[0]
@@ -293,8 +265,6 @@ class Id3(object):
         """
         tree = self.decision_tree(range(len(self.examples)),range(len(self.examples[0])))
         result = self.get_class_labels(test_set,tree)
-        #print "result ",result
-        #print result
         com_result = [result[i]==test_label[i] for i in range(len(result))]
         accurate_rate = com_result.count(True)*1.0/len(test_label)
         return accurate_rate, result

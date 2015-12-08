@@ -29,21 +29,9 @@ class RandomForests(object):
             index = random.randint(0,k-1)
             rtn_examples.append(self.examples[index])
             rtn_labels.append(self.labels[index])
+        #print rtn_examples
         return rtn_examples,rtn_labels
 
-    def attributes_gen(self,q):
-        """
-        q is the number of selected attributes by random forests
-        """
-        rtn_attributes = []
-        print "q ",q
-        #Choose q attributes
-        for i in range(int(q)):
-            attr = None
-            while (attr in rtn_attributes or (not attr)):
-                attr = random.randint(0,len(self.examples[0])-1)
-            rtn_attributes.append(attr)
-        return rtn_attributes
     def create_forests(self,tree_num,testing_data,prop=0.5):
         """
         Create tree_num decision trees
@@ -56,7 +44,7 @@ class RandomForests(object):
             results.append(id3.get_class_labels(testing_data,tree))
         return results
 
-    def conduct(self,testing_data,testing_label,prop=1.0,tree_num=200):
+    def conduct(self,testing_data,testing_label,prop=1.0,tree_num=100):
         results = self.create_forests(tree_num,testing_data,prop)
         ensemble_results = defaultdict(list)
         for labels in results:

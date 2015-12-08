@@ -46,9 +46,7 @@ class Ada(object):
         sample_examples_index = self.weighted_sample(prop)
         sample_labels  = [self.labels[index] for index in sample_examples_index]
         sample_examples  = [self.examples[index] for index in sample_examples_index]
-        #print 'sample_examples ',sample_examples
-        #print 'sample_labels ',sample_labels
-        base_classifier = classifier(sample_examples,sample_labels,slef.flags)
+        base_classifier = classifier(sample_examples,sample_labels,self.flags)
         attributes = range(len(self.examples[0]))
         tree = base_classifier.decision_tree(range(len(sample_examples)),attributes)
         weight_results = base_classifier.get_class_labels(examples,tree)
@@ -69,15 +67,10 @@ class Ada(object):
         example_length = len(self.examples)
         iter_num = 0
         for i in range(T):
-            print i
             test_results,flag,results = self.get_base_class(classifier,testing_set,prop)
             com_flag = [test_results[j]==testing_labels[j] for j in range(len(test_results))]
-           # print "accurate_rate ", com_flag.count(True)," ",com_flag.count(True)*1.0/len(test_results)
-           # print 'test_results',test_results
             error_rate = self.get_error_rate(flag)
-           # print "error_rate", error_rate
             a = 1.0/2*math.log((1-error_rate)*1.0/error_rate)
-           # print "a ",a
             result_label = [result_label[i]+a*test_results[i] for i in range(len(test_results))]
             for j in range(example_length):
                 if flag[j]:
@@ -90,7 +83,6 @@ class Ada(object):
             if (error_rate==0) or (error_rate>=0.5):
                 break
         result_label = [result_label[i]*1.0/iter_num for i in range(len(result_label))]
-        #print "result_label ",result_label
         for i in range(len(result_label)):
             if result_label[i] < 0.0:
                 result_label[i] = -1.0
